@@ -142,8 +142,10 @@ El microservicio estará disponible en: `http://localhost:5000` o `http://127.0.
 
     - Abrir laragon y ubicarse en la base de datos creada en el microservicio
     ![alt text](image.png)
+
     - Ubicarse en la tabla usuarios
     ![alt text](image-1.png)
+
     - Seleccionar `role_id` numero 1
     ![alt text](image-2.png)
 
