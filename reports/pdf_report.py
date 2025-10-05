@@ -1,26 +1,38 @@
-# Archivo de reportes en PDF
+# Archivo: generate_pdf.py
 
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib import colors
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
 import datetime
+import re
 
-def generate_pdf(data, filename="reporte.pdf"):
+def generate_pdf(data, report_type="reporte", filename=None):
     """
-    Genera un PDF en formato tabla usando datos JSON con ajuste dinámico.
+    Genera un PDF dinámico en formato tabla a partir de cualquier JSON recibido.
+    - data: lista o diccionario con datos a incluir.
+    - report_type: string que describe el contenido ('usuarios', 'vehículos', 'ventas', etc.)
+    - filename: opcional; si no se pasa, se genera automáticamente con base en report_type.
     """
+
+    # Si no se especifica nombre, lo generamos automáticamente
+    if not filename:
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        # Asegurar nombre válido sin caracteres especiales
+        safe_type = re.sub(r'[^a-zA-Z0-9_]', '_', report_type)
+        filename = f"reporte_{safe_type}_{timestamp}.pdf"
+
     # Usamos formato horizontal para más espacio
     doc = SimpleDocTemplate(filename, pagesize=landscape(A4))
     elements = []
     styles = getSampleStyleSheet()
 
-    # Título
-    title = Paragraph("Reporte de Usuarios", styles["Title"])
+    # Título dinámico
+    title = Paragraph(f"Reporte de {report_type.capitalize()}", styles["Title"])
     elements.append(title)
     elements.append(Spacer(1, 12))
 
-    # Si data es un diccionario lo convertimos en lista
+    # Convertir dict a lista si es necesario
     if isinstance(data, dict):
         data = [data]
 
@@ -34,44 +46,30 @@ def generate_pdf(data, filename="reporte.pdf"):
     for row in data:
         all_columns.update(row.keys())
 
-    # Orden deseado de columnas
-    headers = [
-        "id",
-        "role_id",
-        "name",
-        "email",
-        "email_verified_at",
-        "updated_at",
-        "remember_token",
-        "created_at",
-    ]
-    headers = [col for col in headers if col in all_columns]
-    extra_cols = [col for col in all_columns if col not in headers]
-    headers.extend(extra_cols)
-
-    # Construcción de tabla
+    headers = list(all_columns)
     table_data = [headers]
+
+    # Agregar filas de datos
     for row in data:
         row_values = []
         for h in headers:
             value = row.get(h, "")
-            # Usar Paragraph solo para strings largas, no números
             if isinstance(value, (int, float)):
-                row_values.append(str(value))  # número como string plano
-            elif isinstance(value, str) and len(value) > 20:
+                row_values.append(str(value))
+            elif isinstance(value, str) and len(value) > 40:
                 row_values.append(Paragraph(value, styles["Normal"]))
             else:
                 row_values.append(str(value))
         table_data.append(row_values)
 
-    # Calcular ancho de columnas dinámicamente
+    # Calcular ancho de columnas dinámico
     page_width = landscape(A4)[0] - 80
-    col_width = page_width / len(headers)
+    col_width = max(80, page_width / len(headers))
     col_widths = [col_width for _ in headers]
 
     table = Table(table_data, colWidths=col_widths, repeatRows=1)
 
-    # Estilos
+    # Estilo de tabla
     table.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#4F81BD")),
         ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
@@ -84,11 +82,12 @@ def generate_pdf(data, filename="reporte.pdf"):
     ]))
 
     elements.append(table)
+    elements.append(Spacer(1, 12))
 
     # Footer con fecha
-    elements.append(Spacer(1, 12))
     fecha = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    elements.append(Paragraph(f"Generado el {fecha}", styles["Normal"]))
+    elements.append(Paragraph(f"Generado automáticamente el {fecha}", styles["Normal"]))
 
+    # Construir PDF
     doc.build(elements)
     return filename
