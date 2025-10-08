@@ -21,6 +21,7 @@ def generate_excel(data, filename="reporte.xlsx"):
     wb = load_workbook(filename)
     ws = wb.active
 
+    # Definir estilos
     header_font = Font(bold=True, color="FFFFFF")
     header_fill = PatternFill("solid", fgColor="4F81BD")
     alignment = Alignment(horizontal="center", vertical="center")
